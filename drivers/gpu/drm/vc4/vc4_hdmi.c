@@ -3270,6 +3270,17 @@ static int vc4_hdmi_runtime_resume(struct device *dev)
 	/* Set the logical address to Unregistered */
 	value |= VC4_HDMI_CEC_ADDR_MASK;
 	HDMI_WRITE(HDMI_CEC_CNTRL_1, value);
+
+	/*
+	* Ensure the hardware transmitter is held in software-reset
+	* (TX/RX SW RESET) so we don't actively drive the CEC line
+	* before userspace has claimed a logical address and called
+	* adap_enable().  This prevents early-boot line drive.
+	*/
+	value = HDMI_READ(HDMI_CEC_CNTRL_5);
+	value |= VC4_HDMI_CEC_TX_SW_RESET | VC4_HDMI_CEC_RX_SW_RESET;
+	HDMI_WRITE(HDMI_CEC_CNTRL_5, value);
+	
 	spin_unlock_irqrestore(&vc4_hdmi->hw_lock, flags);
 
 	vc4_hdmi_cec_update_clk_div(vc4_hdmi);
